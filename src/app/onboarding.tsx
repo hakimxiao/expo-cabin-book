@@ -79,7 +79,7 @@ export default function Onboarding() {
       </ScrollView>
 
       <View
-        className="absolute inset-x-0 flex-row items-center justify-center px-6"
+        className="absolute inset-x-0 flex-row items-center justify-between px-6"
         style={{ top: insets.top + 16 }}
         pointerEvents="box-none"
       >
