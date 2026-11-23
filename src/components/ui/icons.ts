@@ -13,12 +13,18 @@ export const icons = {
   },
   person: { ios: "person", android: "person", web: "person" },
   settings: { ios: "gearshape", android: "settings", web: "settings" },
+  marker: { ios: "mappin", android: "location_on", web: "location_on" },
   pin: {
     ios: "mappin.and.ellipse",
     android: "location_on",
     web: "location_on",
   },
   filters: { ios: "slider.horizontal.3", android: "tune", web: "tune" },
+  arrowLeft: {
+    ios: "arrow.left",
+    android: "arrow_back",
+    web: "arrow_back",
+  },
   arrowRight: {
     ios: "arrow.right",
     android: "arrow_forward",

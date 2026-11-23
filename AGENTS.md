@@ -28,7 +28,7 @@ npx eas-cli@latest <cmd>    # EAS builds, submits, and updates (use instead of b
 
 Each tool has one job. Ask before moving a responsibility to a different tool.
 
-- **Auth:** Clerk is the source of truth. The app keeps its own custom auth screens. Set Clerk up through the Clerk CLI and use the Clerk MCP for current Expo patterns.
+- **Auth:** Clerk is the source of truth. The app keeps its own custom auth screens in the `(auth)` route group (`sign-in`, `sign-up`), which are stubs until Clerk is set up. Set Clerk up through the Clerk CLI and use the Clerk MCP for current Expo patterns.
 - **Content:** Sanity (properties, hosts, policies, house rules). Studio is a standalone app in `studio/`. Schema deploys and content changes go through the Sanity MCP, and generated property copy uses Agent Actions.
 - **Exact constraints** (price, guests, type, amenities, pets, place): GROQ filters, with values always passed as params.
 - **Soft intent** (quiet, cozy, secluded): Dataset Embeddings via `text::semanticSimilarity()` inside `score()`.
@@ -82,7 +82,8 @@ Designs are attached in the chat. Screens must match them exactly: layout, spaci
 - Font is Plus Jakarta Sans (static TTFs in `assets/fonts/`), loaded with `useFonts` in the root layout behind the splash screen. Switch to the `expo-font` config plugin once the app runs on a development build. Weight comes from the family (`font-jakarta-bold`), never from `font-bold`.
 - Light mode only (`userInterfaceStyle: "light"`). Add dark values as `prefers-color-scheme` overrides of the same tokens.
 - Primitives live in `src/components/ui/` and take `className` (layout only) and `style` (merged last). Promote other views there only once two screens use them. Native controls (Switch) stay native and get colors through `styled` mappings.
-- `src/app/index.tsx` is a temporary design-system preview (`?y=<offset>` opens it scrolled) until the home screen replaces it.
+- `src/app/index.tsx` redirects to `/onboarding`; once Clerk lands it chooses onboarding or home from the session. The design-system preview lives at `/design-system` (`?y=<offset>` opens it scrolled).
+- Third-party views (`expo-image`, `GlassView`, `react-native-svg`) need `styled(X, { className: "style" })` before `className` works. SVG fills come from token classes through `nativeStyleMapping: { color: "fill" }`.
 
 ## Reporting
 
@@ -99,100 +100,3 @@ End every piece of work that changes code (features and fixes, not answers to qu
 - Lint and type check pass before any task is called done.
 - Screens that load data handle loading, error, and empty states.
 - AI features are tried against realistic inputs, and failures are explained by cause: missing data, the decision Jev made, the query, or the code.
-
-<!--
-
-   DON'T READ AND LEARN EVERYTHING TEKS BELLOW !
-
-# Roam
-
-Aplikasi rental Expo React Native. Guest mendeskripsikan penginapan dalam satu kalimat ("quiet pet friendly cabin with a hot tub under $300 a night") dan mendapatkan daftar stay yang sudah diurutkan. Mereka juga bisa menanyakan hal seputar booking dan kebijakan suatu stay, dan jawabannya berupa teks persis dari konten milik Roam sendiri.
-
-File ini adalah memori proyek: berisi setiap keputusan yang masih berlaku. Plan di `prompts/` hanyalah riwayat.
-
-## Commands
-
-```bash
-npx expo install <package>  # SELALU gunakan ini, bukan npm install: memilih versi yang kompatibel dengan SDK
-npx expo start              # dev server (tekan i untuk iOS simulator)
-npx expo lint               # lint
-npx tsc --noEmit            # type check
-npx expo-doctor             # diagnosis masalah dependency dan config
-npx expo install --fix      # perbaiki versi package yang tidak kompatibel
-npx eas-cli@latest <cmd>    # EAS builds, submits, dan updates (gunakan ini, bukan `eas` saja)
-```
-
-## Expo
-
-- Expo membawa breaking changes di setiap rilis SDK, jadi jangan percaya ingatan. Sebelum menyentuh API Expo, EAS, atau React Native, cek versi mayor `expo` di `package.json` dan baca `https://docs.expo.dev/versions/v<major>.0.0/`. Untuk hal lainnya, mulai dari https://docs.expo.dev/llms.txt dan ikuti link-nya.
-- Routes ada di `src/app/`: setiap file adalah sebuah screen dan file `_layout.tsx` mendefinisikan navigator. API routes berada di `src/app/api/*+api.ts`. Simpan components, hooks, dan utils di luar `src/app/`.
-- `ios/` dan `android/` dihasilkan otomatis (generated). Jangan pernah membuat atau mengeditnya secara manual; atur perilaku native lewat `app.json` dan config plugins.
-- Expo Go hanya menyertakan native modules bawaannya. Setelah menambahkan library yang berisi kode native, pindah ke development build (`npx expo run:ios`).
-
-## Siapa memegang apa
-
-Setiap tool punya satu tugas. Tanyakan dulu sebelum memindahkan suatu tanggung jawab ke tool lain.
-
-- **Auth:** Clerk adalah source of truth. Aplikasi tetap memakai custom auth screens sendiri. Siapkan Clerk lewat Clerk CLI dan gunakan Clerk MCP untuk pola Expo terbaru.
-- **Content:** Sanity (properties, hosts, policies, house rules). Studio adalah aplikasi standalone di `studio/`. Deploy schema dan perubahan content dilakukan lewat Sanity MCP, dan teks properti yang di-generate memakai Agent Actions.
-- **Exact constraints** (harga, jumlah guest, tipe, amenities, hewan peliharaan, lokasi): GROQ filters, dengan nilai selalu dikirim sebagai params.
-- **Soft intent** (quiet, cozy, secluded): Dataset Embeddings lewat `text::semanticSimilarity()` di dalam `score()`.
-- **Policy knowledge:** sebuah Sanity Context endpoint dalam Knowledge Base mode. Context endpoints dibuat di Context app pada Dashboard dan dibaca dengan organization token (Context Viewer), sesuai https://www.sanity.io/docs/ai/context-migration-guide. Satu endpoint hanya melayani satu mode. Context skill masih menjelaskan dokumen Studio `sanity.agentContext` dengan project token; jalur itu sudah deprecated, jadi jangan dipakai.
-- **Typed decisions** (topik stay dan policy mana yang menjawab suatu pertanyaan): Jev, dipanggil dari API routes lewat `experimental_evaluate` milik AI SDK dengan provider `@ai-sdk/typesafe-ai` dan `TYPESAFE_AI_API_KEY`. Tidak memakai Vercel AI Gateway. Pin `ai` dan `@ai-sdk/typesafe-ai` ke versi persis (exact versions), karena API-nya masih experimental.
-- **Answer text:** tidak ada yang di-generate. Jawaban menampilkan field milik stay dan teks policy kata demi kata, beserta sumbernya. Tidak ada LLM yang berjalan di dalam aplikasi.
-- **Analytics:** PostHog, diidentifikasi lewat Clerk.
-
-## Rules
-
-- Secret keys (Clerk secret key, TypeSafe key, Sanity organization token, Sanity write token) tidak boleh sampai ke app bundle. Gunakan hanya di API routes dan script lokal seperti seeding. Jangan pernah menaruhnya di balik `EXPO_PUBLIC_`, karena variabel itu ikut masuk ke bundle aplikasi. Jangan pernah commit `.env`. Simpan nama variabel, tanpa nilainya, di `.env.example`.
-- Sanity Context membutuhkan Studio yang sudah di-deploy untuk dataset tersebut. Deploy ulang Studio dari `studio/` setiap kali schema berubah.
-- Jev bukan agent. Ia menjawab pertanyaan bertipe (Choice, Noul, Score) dengan probabilitas. Ia tidak pernah menulis GROQ, memanggil tools, atau meng-generate teks. Kode yang membangun query dari jawabannya.
-- Harga, jumlah guest, dan tanggal di-parse di dalam kode. Jev boleh memilih di antara kandidat yang ditemukan kode, tetapi tidak pernah menghasilkan nilainya.
-- Embeddings melakukan ranking, bukan filtering, dan hanya melihat dokumen itu sendiri (tanpa references). Hard constraints selalu berupa GROQ filters, dan teks yang harus memengaruhi ranking ditaruh di dokumen property.
-- Jawaban policy hanya menampilkan teks dari data stay dan policy Roam, kata demi kata. Jika tidak ada yang menjawab pertanyaannya, katakan begitu dan arahkan ke support.
-- API routes memverifikasi session Clerk sebelum melakukan pekerjaan apa pun.
-- Kegagalan PostHog tidak boleh memblokir aplikasi. Jangan pernah mengirim apa yang diketik guest, token, atau data pribadi dalam events.
-- Biarkan Sanity yang membuat document ID. Modelkan relasi sebagai references.
-- Tanyakan dulu sebelum menambah dependency atau service, mengubah schema Sanity setelah content ada, atau menghapus data. Pilih Expo modules daripada library pihak ketiga.
-- Setiap kali butuh input dari user, tanyakan lewat question panel bawaan tool Anda agar user memilih dari opsi, bukan mengetik. Berikan dua sampai empat opsi yang jelas dengan opsi yang direkomendasikan di urutan pertama. Gunakan teks biasa hanya jika panel seperti itu tidak ada.
-
-## Cara kita membangun fitur
-
-Untuk fitur baru atau perubahan yang menyentuh beberapa file. Perbaikan kecil dan pertanyaan melewati proses ini.
-
-1. **Pahami.** Baca kode yang terlibat. Buka plan sebelumnya hanya jika fitur ini dibangun langsung di atasnya (pilih berdasarkan nama file). Baca halaman docs terbaru untuk API yang akan dipakai, dan muat skill yang cocok jika ada (misalnya skill Expo, Clerk, Sanity, Sanity Context, atau TypeSafe). Jangan menulis API yang bergantung versi dari ingatan.
-2. **Tanya.** Jika ada keputusan penting yang belum jelas (scope, perilaku yang terlihat, bentuk data), tanyakan lewat question panel, kumpulkan pertanyaan dalam satu ronde dan lanjutkan hanya jika jawabannya memunculkan pertanyaan baru. Pilih default untuk sisanya dan daftarkan. Jika sebuah keputusan di file ini terlihat salah, angkat masalahnya, jangan langsung mengubahnya.
-3. **Rencanakan.** Salin `prompts/TEMPLATE.md` ke `prompts/NN-feature-name.md` (nomor berikutnya) dan isi. Plan harus berdiri sendiri (self-contained), sehingga session baru bisa membangunnya hanya dari file ini ditambah plan tersebut.
-4. **PENTING: berhenti dan tunggu.** Jangan tulis kode aplikasi sampai user menyetujui plan. Minta persetujuan lewat question panel (setujui, atau minta perubahan). Jika user meminta perubahan, perbarui plan dan tanyakan lagi. Setelah disetujui, set `Status: approved`.
-5. **Bangun** langkah demi langkah, periksa setiap langkah. Jika sebuah langkah ternyata salah, berhenti dan jelaskan, jangan mendesain ulang.
-6. **Penutupan.**
-   - Jalankan Verification dari plan dan berikan laporan seperti dijelaskan di bagian Reporting.
-   - Tambahkan `## Result` singkat ke plan dan set `Status: done`.
-   - Perbarui file ini: taruh setiap keputusan yang bertahan lama di bagian yang sesuai. Ganti atau hapus aturan yang sudah tidak benar, jangan hanya menambah di bawahnya. Jaga file ini tetap di bawah 150 baris.
-
-## Membangun dari designs
-
-Designs dilampirkan di chat. Screens harus sama persis dengan design: layout, spacing, ukuran, warna, tipografi, radii, icons, dan copy.
-
-- Icons, fonts, dan brand images berasal dari `assets/` atau icon library yang dipilih, tidak pernah dibuat ulang dari screenshot. Foto properti contoh boleh berupa remote placeholder images. Jika ada asset yang hilang, gunakan placeholder yang ditandai dan daftarkan.
-- Petakan setiap warna, font, nilai spacing, dan radius ke token design system. Daftarkan nilai yang tidak punya token di dalam plan sebagai usulan token baru, jangan di-hardcode. Saat membuat design system itu sendiri, turunkan token-nya dari designs.
-- Plan untuk UI mendeskripsikan design (elements, states, tokens, assets) dengan cukup rinci agar bisa dibangun tanpa gambarnya. Jika membangun di session baru, minta design dilampirkan lagi.
-- Setelah membangun, buka screen di iOS simulator (deep link dengan `xcrun simctl openurl booted <url>` jika bukan screen pertama; scheme ada di `app.json`), ambil screenshot (`xcrun simctl io booted screenshot <path>`), dan bandingkan dengan design. Daftarkan setiap perbedaan, perbaiki, dan ulangi. Laporkan nilai mana yang diperkirakan dari gambar.
-
-## Reporting
-
-Akhiri setiap pekerjaan yang mengubah kode (fitur dan perbaikan, bukan jawaban atas pertanyaan) dengan laporan ini. Gunakan heading berikut sesuai urutannya, dan hilangkan section yang akan kosong.
-
-- **Done:** satu baris tentang hasilnya, lalu file yang diubah dan apa yang berubah di masing-masing.
-- **Verified:** setiap pemeriksaan dengan ✅ atau ❌ beserta buktinya (output command, screenshot). Daftarkan yang tidak diperiksa sebagai ❌ dengan alasannya. Jangan pernah menandai ✅ tanpa menjalankannya.
-- **You need to:** tindakan bernomor yang hanya bisa dilakukan user, seperti keys, pengaturan dashboard, langkah manual di Sanity, atau asset yang harus disediakan.
-- **Test it yourself:** langkah bernomor untuk mereproduksi hasil dari awal, diakhiri dengan `Expected:` dan apa yang seharusnya dilihat user.
-- **Notes:** default yang dipilih, trade-offs, dan hal yang ditunda untuk nanti.
-
-## Checks
-
-- Lint dan type check harus lolos sebelum tugas apa pun dinyatakan selesai.
-- Screens yang memuat data menangani loading, error, dan empty states.
-- Fitur AI dicoba dengan input yang realistis, dan kegagalan dijelaskan berdasarkan penyebabnya: data yang hilang, keputusan yang dibuat Jev, query-nya, atau kodenya.
-
- -->
